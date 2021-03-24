@@ -19,7 +19,7 @@ class BinSorting:
             self.decreasing = False
 
         self.dimension = self.string[1:]
-        self.sort(packer.bins)
+        self.sort(packer.bins_to_use)
     
     def string(self):
         return self.string
