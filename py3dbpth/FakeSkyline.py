@@ -16,9 +16,10 @@ class FakeSkyline:
     def pack_to_bin(self, bin, item, tub_item=False):
         
         if item.in_tub != None and not tub_item:
-            tub_items = self.packer.tubs[item.in_tub].items
-            fitted_tub = True
 
+            tub_items = self.packer.tubs[item.in_tub-1].items
+            fitted_tub = True
+                
             for i in tub_items:
                 fitted_tub = fitted_tub and self.pack_to_bin(bin, i, True)
                 if fitted_tub:
@@ -37,12 +38,11 @@ class FakeSkyline:
                 fitted = False    
                 
                 if not bin.items: #Falls Bin leer ist -> put_item an [0,0,0]
-                    response = bin.put_item(item, START_POSITION) #Boolean Wert von "fit"
+                    response = bin.put_item(item, START_POSITION, True) #Boolean Wert von "fit"
                     if response:
                         bin.items.append(item)
-                        self.packer.assignment_matrix[bin.index,item.index]=1
                         self.packer.items_to_pack.remove(item)                        
-                        self.packer.sequence[bin.index].append(item.index)
+                        bin.sequence.append(item.index)
                     return response
         
                 for axis in range(0, 3): #0=WIDTH, 1=HEIGHT, 2=DEPTH
@@ -58,12 +58,11 @@ class FakeSkyline:
                         elif axis == Axis.HEIGHT:
                             pivot = [ib.position[0], ib.position[1], ib.position[2] + h]
         
-                        if bin.put_item(item, pivot):
+                        if bin.put_item(item, pivot, True):
                             fitted = True
                             bin.items.append(item)
-                            self.packer.assignment_matrix[bin.index,item.index]=1
                             self.packer.items_to_pack.remove(item)
-                            self.packer.sequence[bin.index].append(item.index)
+                            bin.sequence.append(item.index)
                             break
                     if fitted:
                         break
@@ -74,11 +73,10 @@ class FakeSkyline:
             elif self.packer.packing_heuristic == "max_contact":
                 fitted = False    
                 
-                if bin.put_item(item,item.get_max_contact_point(bin)): #Boolean Wert von "fit"
+                if bin.put_item(item,item.get_max_contact_point(bin), False): #Boolean Wert von "fit"
                     bin.items.append(item)
-                    self.packer.assignment_matrix[bin.index,item.index]=1
                     self.packer.items_to_pack.remove(item)                        
-                    self.packer.sequence[bin.index].append(item.index)
+                    bin.sequence.append(item.index)
                     fitted=True
                 return fitted
             
@@ -86,11 +84,10 @@ class FakeSkyline:
             elif self.packer.packing_heuristic == "corner":
                 fitted = False    
                 
-                if bin.put_item(item,item.get_most_cornerlike_point(bin)): #Boolean Wert von "fit"
+                if bin.put_item(item,item.get_most_cornerlike_point(bin), False): #Boolean Wert von "fit"
                     bin.items.append(item)
-                    self.packer.assignment_matrix[bin.index,item.index]=1
                     self.packer.items_to_pack.remove(item)                        
-                    self.packer.sequence[bin.index].append(item.index)
+                    bin.sequence.append(item.index)
                     fitted=True
                 return fitted
     
@@ -98,8 +95,6 @@ class FakeSkyline:
         item.rotation_type = 0
         item.position = START_POSITION
         bin.items.remove(item)
-        self.packer.assignment_matrix[bin.index,item.index]=0
         self.packer.items_to_pack.insert(0, item)
-        self.packer.sequence[bin.index].remove(item.index)
+        bin.sequence.remove(item.index)
         return
-        

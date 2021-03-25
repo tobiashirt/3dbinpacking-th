@@ -69,7 +69,7 @@ class OverhangRule:
         
         if self.get_relative_overhang(bin, item, position) <= self.max_overhang_ratio:
             check_threshold = True
-            
+        
         if self.get_number_of_mounted_corners(bin, item, position) >= self.min_mounted_corners:
             check_points = True
         

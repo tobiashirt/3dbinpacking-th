@@ -43,7 +43,8 @@ class ItemSorting:
             "MAR": Item.get_max_area_ratio,
             "SFA": Item.get_surface_area,
             "AR": Item.get_aspect_ratio,
-            "VOL": Item.get_volume
+            "VOL": Item.get_volume,
+            "DEN": Item.get_density
             }
 
         x = item_sort_dict[self.dimension]

@@ -18,8 +18,9 @@ START_POSITION = [0, 0, 0]
 
 
 class Item:
-    def __init__(self, name: str, width: int, depth: int, height: int, weight:int, in_tub=None):
+    def __init__(self, name: str, article_id: int, width: int, depth: int, height: int, weight:int, in_tub: int=None):
         self.name = name
+        self.article_id = article_id
         self.index = 0
         self.width = width
         self.depth = depth
@@ -30,8 +31,8 @@ class Item:
         self.position = START_POSITION
 
     def string(self):
-        return "Item %s - %s (%sx%sx%s, weight: %s) pos(%s) rot(%s) vol(%s)" % (
-            self. index, self.name, self.width, self.depth, self.height, self.weight,
+        return "Item %s / %s - %s (%sx%sx%s, weight: %s) pos(%s) rot(%s) vol(%s)" % (
+            self. index, self.name, self.article_id, self.width, self.depth, self.height, self.weight,
             self.position, self.rotation_type, self.get_volume()
         )
     
@@ -82,6 +83,9 @@ class Item:
     
     def get_volume(self): #VOL
         return self.width * self.height * self.depth
+    
+    def get_density(self): #DEN
+        return self.weight / self.get_volume()
     
     def get_aspect_ratio(self): #AR
         return ((self.get_width()/self.get_longest_side())*(self.get_height()/self.get_longest_side())*(self.get_depth()/self.get_longest_side()))
@@ -189,7 +193,6 @@ class Item:
         self.position=START_POSITION
         self.rotation_type=cornerlike_r
                 
-        #print(cornerlike_xyz)
         return cornerlike_xyz
     
     def get_dimension(self):

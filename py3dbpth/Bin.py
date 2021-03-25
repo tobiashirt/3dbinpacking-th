@@ -18,8 +18,9 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection, Line3DCollection
 START_POSITION = [0, 0, 0]
 
 class Bin:
-    def __init__(self, name: str, width: int, depth: int, height: int, max_weight: int, max_overhang_ratio: float = 0.0, min_mounted_corners: int = 4, weight: int = 0):
+    def __init__(self, name: str, t: str, width: int, depth: int, height: int, max_weight: int, max_overhang_ratio: float = 0.0, min_mounted_corners: int = 4, weight: int = 0):
         self.name = name
+        self.type = t
         self.index = 0
         self.width = width
         self.depth = depth
@@ -27,6 +28,7 @@ class Bin:
         self.weight = weight
         self.max_weight = max_weight
         self.items = []
+        self.sequence = []
         self.overhangRule = OverhangRule(max_overhang_ratio, min_mounted_corners)
 
     def string(self):
@@ -37,6 +39,9 @@ class Bin:
 
     def get_longest_side(self): #LS
         return max(self.width,self.depth,self.height)
+    
+    def get_longest_side_diff(self, item):
+        return self.get_aspect_ratio()-item.get_aspect_ratio()
 
     def get_volume(self): #VOL
         return self.width * self.depth * self.height
@@ -76,10 +81,10 @@ class Bin:
 
     def plot_bin(self, axis = None):
         
-        item_string = ""
-        for item in self.items:
-            item_string += str(item.index)+","
-        item_string = item_string[:-1]
+        item_string = str(len(self.items))+" Items"
+        #for item in self.items:
+        #    item_string += str(item.index)+","
+        #item_string = item_string[:-1]
         
         if not axis:
             fig = plt.figure()
@@ -87,7 +92,7 @@ class Bin:
         else:
             ax = axis
         
-        ax.set_title("Bin "+str(self.index)+" with Items: \n"+item_string)
+        ax.set_title("Bin " + str(self.index) + " from " + self.type + " with " + item_string)
         
         Z = np.array([[0, 0, 0], 
                       [self.width, 0, 0], 
@@ -164,7 +169,6 @@ class Bin:
                         break #Falls sich Items in Bin mit betrachtetem Item schneiden, nächste Rotation
 
                 if not self.overhangRule.check_rule(self, item, pivot):
-                #if not item.check_overhangRule(self, pivot, 0.1, 4):
                     fit = False
                     return fit
     
