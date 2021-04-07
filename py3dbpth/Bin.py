@@ -28,7 +28,8 @@ class Bin:
         self.weight = weight
         self.max_weight = max_weight
         self.items = []
-        self.sequence = []
+        self.item_sequence = []
+        self.tub_sequence = []
         self.overhangRule = OverhangRule(max_overhang_ratio, min_mounted_corners)
 
     def string(self):
@@ -44,7 +45,7 @@ class Bin:
         return self.get_aspect_ratio()-item.get_aspect_ratio()
 
     def get_volume(self): #VOL
-        return self.width * self.depth * self.height
+        return self.width * self.depth * self.height / (1000*1000*1000)
     
     def get_aspect_ratio(self) -> float: #AR
         return ((self.width/self.get_longest_side())*(self.depth/self.get_longest_side())*(self.height/self.get_longest_side()))
@@ -63,7 +64,7 @@ class Bin:
         items_volume = 0
         for i in self.items:
             items_volume += i.get_volume()
-        return self.get_volume()-items_volume
+        return self.get_volume()-(items_volume/(1000*1000*1000))
     
     def get_remaining_volume_item(self, item):
         items_volume = 0
@@ -79,15 +80,17 @@ class Bin:
 
         return total_weight
 
-    def plot_bin(self, axis = None):
+    def plot_bin(self, figure = None, axis = None):
         
         item_string = str(len(self.items))+" Items"
-        #for item in self.items:
-        #    item_string += str(item.index)+","
-        #item_string = item_string[:-1]
+        
+        if figure:
+            fig = figure
+        else:
+            fig = plt.figure()
         
         if not axis:
-            fig = plt.figure()
+            #fig = plt.figure()
             ax = fig.add_subplot(111, projection='3d')
         else:
             ax = axis
@@ -148,6 +151,7 @@ class Bin:
             return
 
     def put_item(self, item, pivot, rotate=True):
+
         fit = False
         valid_item_position = item.position #standardmäßig STARTING_POSITION [0,0,0]
         item.position = pivot #mögliche Pivotpunkte
@@ -156,9 +160,8 @@ class Bin:
             for i in range(0, len(RotationType.ALL)):
                 item.rotation_type = i
                 dimension = item.get_dimension() #gibt Dimensionen je nach Rotationswert zurück
-                if (self.width < pivot[0] + dimension[0] or
-                    self.depth < pivot[1] + dimension[1] or
-                    self.height < pivot[2] + dimension[2]):
+                
+                if (self.width < pivot[0] + dimension[0] or self.depth < pivot[1] + dimension[1] or self.height < pivot[2] + dimension[2]):
                     continue
     
                 fit = True #Item i passt "generell" in Bin j
@@ -170,7 +173,7 @@ class Bin:
 
                 if not self.overhangRule.check_rule(self, item, pivot):
                     fit = False
-                    return fit
+                    break
     
                 if fit:
                     if self.get_total_weight() + item.weight > self.max_weight:
@@ -190,15 +193,13 @@ class Bin:
         else:
             dimension = item.get_dimension() #gibt Dimensionen je nach Rotationswert zurück
             if ( #check ob Item nicht zu groß für Bin ist
-                self.width >= pivot[0] + dimension[0] or
-                self.height >= pivot[1] + dimension[1] or
-                self.depth >= pivot[2] + dimension[2]):
+                self.width >= pivot[0] + dimension[0] or self.height >= pivot[1] + dimension[1] or self.depth >= pivot[2] + dimension[2]):
                 fit = True #Item i passt "generell" in Bin j
 
             for current_item_in_bin in self.items:
                 if intersect(current_item_in_bin, item): 
-                    fit = False 
-                    return fit #Falls sich Items in Bin mit betrachtetem Item schneiden, nächste Rotation
+                    fit = False
+                    break
 
             if fit:
                 if self.get_total_weight() + item.weight > self.max_weight:

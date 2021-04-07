@@ -35,13 +35,13 @@ class Packer:
         self.order_index = 0
         self.total_orders = 0
         
-        self.tubs = []
-        self.tub_index = 0
-        self.total_tubs = 0
-        
         self.order_positions = []
         self.order_position_index = 0
         self.total_order_positions = 0
+        
+        self.tubs = []
+        self.tub_index = 0
+        self.total_tubs = 0
         
         self.items = []
         self.item_index = 0
@@ -51,8 +51,10 @@ class Packer:
         self.items_to_pack = []
         self.bins_to_use = []
         
-        self.sequence = []
-        self.assignment_matrix = np.zeros(shape=(1,1))
+        self.item_sequences = []
+        self.tub_sequences = []
+        self.item_bin_assignment_matrix = np.zeros(shape=(1,1))
+        self.bin_order_assignment_matrix = np.chararray(shape=(1,1), itemsize=3)
 
     def add_bin(self, bin):
         self.total_bins = len(self.bins) + 1
@@ -70,7 +72,7 @@ class Packer:
             for bt in self.bin_types:
                 for eb in self.get_empty_bins():
                     if bt.type != eb.type:
-                        #self.sequence.append([])
+                        #print("add_empty_bin_from_type: "+str(bt.type))
                         return self.add_bins_to_use(copy.deepcopy(bt))
         else:
             return self.bins
@@ -79,13 +81,13 @@ class Packer:
         bins_volume = 0
         for b in self.bins:
             bins_volume += b.get_volume()
-        return bins_volume / (1000*1000*1000)
+        return bins_volume
     
     def get_bins_remaining_volume(self):
         bins_remaining_volume = 0
         for b in self.bins:
             bins_remaining_volume += b.get_remaining_volume()
-        return bins_remaining_volume / (1000*1000*1000)
+        return bins_remaining_volume
     
     def get_empty_bins(self):
         empty_bins = list()
@@ -116,23 +118,23 @@ class Packer:
     def add_order(self, order):
         self.total_orders = len(self.orders) + 1
         order.index = len(self.orders)
-        for t in order.tubs:
-            self.add_tub(t)
         for op in order.order_positions:
             self.add_order_position(op)
+        for t in order.tubs:
+            self.add_tub(t)
         for i in order.items:
             self.add_item(i)
         return self.orders.append(order)
-    
-    def add_tub(self, tub):
-        self.total_tubs = len(self.tubs) + 1
-        tub.index = len(self.tubs)
-        return self.tubs.append(tub)
     
     def add_order_position(self, order_position):
         self.total_order_positions = len(self.order_positions) + 1
         order_position.index = len(self.order_positions)
         return self.order_positions.append(order_position)
+    
+    def add_tub(self, tub):
+        self.total_tubs = len(self.tubs) + 1
+        tub.index = len(self.tubs)
+        return self.tubs.append(tub)
 
     def add_item(self, item):
         self.total_items = len(self.items) + 1
@@ -155,17 +157,10 @@ class Packer:
         return result
     
     def __str__(self):        
-        print("Bin_Select_Algo: "+str(self.bin_select_algorithm)+
-              " | Bin_Select_Dim: "+str(self.bin_select_dimension)+
-              " | Packing Algorithm: "+str(self.packing_algorithm)+
-              " | Packing Heuristic: "+str(self.packing_heuristic)+
-              " | Bin_Sorting: "+str(self.bin_sorting)+
-              " | Item_Sorting: "+str(self.item_sorting))
-        print("V_bins: "+str(self.get_bins_volume())+" | V_remaining: "+str(self.get_bins_remaining_volume()))#+
-              #" | V_a_bins: "+str(self.get_active_bins_volume())+" | Objective: "+str(self.objective_value()))
-        print(self.assignment_matrix)
-        #print("Remaining Items: "+self.get_remaining_items())
-        return ""
+        result = "Bin_Select_Algo: "+str(self.bin_select_algorithm)+" | Bin_Select_Dim: "+str(self.bin_select_dimension)+" | Packing Algorithm: "+str(self.packing_algorithm)+" | Packing Heuristic: "+str(self.packing_heuristic)+" | Bin_Sorting: "+str(self.bin_sorting)+" | Item_Sorting: "+str(self.item_sorting)
+        result = result + "\n V_bins: "+str(self.get_bins_volume())+" | V_remaining: "+str(self.get_bins_remaining_volume())
+         
+        return result
     
     def plot_packing(self):
         
@@ -219,9 +214,8 @@ class Packer:
         self.packing_algorithm = packing_algorithm
         self.packing_heuristic = packing_heuristic
 
-    def pack_order(self, order):
-        
-        self.items_to_pack = copy.copy(order.items)
+    def pack_items(self, items):
+        self.items_to_pack = copy.copy(items)
         self.bins_to_use = copy.deepcopy(self.bin_types)
         
         # Bin Sortierung
@@ -234,41 +228,63 @@ class Packer:
         
         # BinSelect Algorithmus
         BinSelectAlgorithm(self)
+
+    def pack_order(self, order):
+        
+        for b in self.bin_types:
+            if b.type in order.allowed_PM:
+                self.bins_to_use.append(copy.deepcopy(b))
+        
+        # Bin Sortierung
+        if self.bin_sorting != "-":
+            BinSorting(self)
+        
+        self.items_to_pack = copy.copy(order.items)
+        # Item Sortierung
+        if self.item_sorting != "-":
+            ItemSorting(self)
+        
+        # BinSelect Algorithmus
+        BinSelectAlgorithm(self)
         
         for b in self.get_active_bins():
             self.add_bin(b)
-            self.sequence.append([])
-            self.sequence[b.index].extend(b.sequence)
+            self.item_sequences.append([])
+            self.item_sequences[b.index].extend(b.item_sequence)
+            self.tub_sequences.append([])
+            self.tub_sequences[b.index].extend(b.tub_sequence)
         self.reset_for_next_order()
         
-        
     def reset_for_next_order(self):
-        self.order_positions = []
-        self.order_position_index = 0
-        self.tubs = []
-        self.tub_index = 0
+        # self.order_positions = []
+        # self.order_position_index = 0
+        # self.tubs = []
+        # self.tub_index = 0
         self.bins_to_use = []
-        
-        for i in range(0,len(self.bin_types)):
-            self.add_bins_to_use(copy.deepcopy(self.bin_types[i]))
 
-    def pack(self, orders):   
-        items = []
-        for o in orders:
-            items.extend(o.items)
+    def pack(self, orders = [], items = []):   
         
-        for i in range(0,len(self.bin_types)):
-            self.add_bins_to_use(copy.copy(self.bin_types[i]))
-            
+        print("Packing Orders")
         for o in orders:
+            print(o.name)
             self.add_order(o)
             self.pack_order(o)
-            
-        self.assignment_matrix = np.zeros(shape=(len(self.bins),len(self.items)))
         
+        if items:
+            print("packing NonOrder Items")
+            self.pack_items(items)
+            
+        print("Create Assignment Matrices")
+        self.item_bin_assignment_matrix = np.zeros(shape=(len(self.bins),len(self.items)))
         for b in self.bins:
             for i in b.items:
-                self.assignment_matrix[b.index,i.index]=1
-                
-        self.assignment_matrix = self.assignment_matrix.astype(int) 
+                self.item_bin_assignment_matrix[b.index,i.index]=1
+        self.item_bin_assignment_matrix = self.item_bin_assignment_matrix.astype(int)
         
+        self.bin_order_assignment_matrix = np.chararray(shape=(len(self.orders),len(self.bins)), itemsize=3)
+        for o in self.orders:
+            for b in self.bins:
+                if b.items[0].order == o:
+                    self.bin_order_assignment_matrix[o.index, b.index] = str(b.type)
+                else:
+                    self.bin_order_assignment_matrix[o.index, b.index] = "   "

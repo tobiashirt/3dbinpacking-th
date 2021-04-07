@@ -6,6 +6,7 @@ Created on Mon Mar  8 21:24:34 2021
 """
 
 from .auxiliary_methods import rect_overlap
+import math
 
 class OverhangRule:
     
@@ -35,12 +36,16 @@ class OverhangRule:
         return (item.get_dimension()[0]*item.get_dimension()[1]) - contact_area
     
     def get_relative_overhang(self, bin, item, position):
-        return self.get_overhang(bin, item, position)/(item.get_dimension()[0]*item.get_dimension()[1])
+        return math.floor(((self.get_overhang(bin, item, position)/(item.get_dimension()[0]*item.get_dimension()[1]))*10000)/10000)
+        # 10000 ensures flooring to the fifth decimal place... there should not be a problem with integers, but who knows ^^    
     
     def get_number_of_mounted_corners(self, bin, item, position):
         
         item.position = position
         n_points = 0
+        
+        if position[2] == 0:
+            return 4
         
         for i in bin.items:
             if item.position[2] == i.position[2] + i.get_dimension()[2]:

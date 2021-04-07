@@ -18,15 +18,17 @@ START_POSITION = [0, 0, 0]
 
 
 class Item:
-    def __init__(self, name: str, article_id: int, width: int, depth: int, height: int, weight:int, in_tub: int=None):
+    def __init__(self, name: str, article_id: str, width: int, depth: int, height: int, weight:int, tub = None, order_position = None, order = None):
         self.name = name
         self.article_id = article_id
+        self.tub = tub
+        self.order_position = order_position
+        self.order = order
         self.index = 0
         self.width = width
         self.depth = depth
         self.height = height
         self.weight = weight
-        self.in_tub = in_tub
         self.rotation_type = 0
         self.position = START_POSITION
 
@@ -134,6 +136,8 @@ class Item:
         max_contact_r = 0
         max_contact_xyz = [0,0,0]
         
+        # TODO: Effizienter machen... Nicht mit for-Schleifen durchgehen, sondern 
+        # Menge zu untersuchender bzw. sinnvoller Punkte über Eckpunkte der Items etc. bestimmen
         for r in range(0,6):
             self.rotation_type=r
             for x in range(0,1+bin.width-self.get_dimension()[0]):
@@ -175,6 +179,8 @@ class Item:
         max_x = 1+bin.width-self.get_dimension()[0]
         max_y = 1+bin.depth-self.get_dimension()[1]
         
+        # TODO: Effizienter machen... Nicht mit for-Schleifen durchgehen, sondern 
+        # Menge zu untersuchender bzw. sinnvoller Punkte über Eckpunkte der Items etc. bestimmen
         if bin.items:
             max_z = max((i.position[2]+i.get_dimension()[2]) for i in bin.items)
         else:
@@ -194,6 +200,25 @@ class Item:
         self.rotation_type=cornerlike_r
                 
         return cornerlike_xyz
+    
+    def set_position_corner(self, x, y, z, corner: int = 0):
+        if corner == 0:
+            self.position = [x,y,z]
+        elif corner == 1:
+            self.position = [x-self.width,y,z]
+        elif corner == 2:
+            self.position = [x,y-self.depth,z]
+        elif corner == 3:
+            self.position = [x-self.width,y-self.depth,z]
+        elif corner == 4:
+            self.position = [x,y,z-self.height]
+        elif corner == 5:
+            self.position = [x-self.width,y,z-self.height]
+        elif corner == 6:
+            self.position = [x,y-self.depth,z-self.height]
+        elif corner == 7:
+            self.position = [x-self.width,y-self.depth,z-self.height]
+        
     
     def get_dimension(self):
         if self.rotation_type == RotationType.RT_WDH:

@@ -32,15 +32,15 @@ class BinSelectAlgorithm:
 
         f_algo = algo_dict[packer.packing_algorithm] 
         f_dim = dim_dict[packer.bin_select_dimension]
-        
+    
         if self.bin_select_algorithm == "first_fit":           
             
-            while packer.items_to_pack:
+            while packer.items_to_pack: #Danger of infinite number of iterations
                 packer.add_empty_bin_from_type()
                 for item in packer.items_to_pack:
                     item_packed = False
                     for bin in packer.bins_to_use:
-                        if f_algo.pack_to_bin(bin, item): #returns true if Item i can be packed into Bin j
+                        if f_algo.pack_virtual_to_bin(bin, item): #returns true if Item i can be packed into Bin j
                             item_packed = True
                             break
                     if item_packed == True:
@@ -54,8 +54,7 @@ class BinSelectAlgorithm:
                     item_packed = False
                     packer.bins_to_use.sort(key=lambda bin: f_dim(bin,item))
                     for b in packer.bins_to_use:
-                        if f_algo.pack_to_bin(b, item): #returns true if Item i can be packed into Bin j
-                            #print("Bin: " + str(b.name) + " - Item: " +str(item.name))
+                        if f_algo.pack_virtual_to_bin(b, item): #returns true if Item i can be packed into Bin j
                             item_packed = True
                             break
                     if item_packed == True:
@@ -69,7 +68,7 @@ class BinSelectAlgorithm:
                     item_packed = False
                     packer.bins_to_use.sort(key=lambda bin: f_dim(bin,item), reverse=True)
                     for b in packer.bins_to_use:
-                        if f_algo.pack_to_bin(b, item): #returns true if Item i can be packed into Bin j
+                        if f_algo.pack_virtual_to_bin(b, item): #returns true if Item i can be packed into Bin j
                             item_packed = True
                             break
                     if item_packed == True:
