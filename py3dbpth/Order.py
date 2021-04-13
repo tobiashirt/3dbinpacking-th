@@ -21,6 +21,9 @@ class Order:
         self.tubs = []
         self.items = []
         
+        self.bins = []
+        self.utilization = 1.0
+        
         if order_positions != None:
             for op in order_positions:
                 self.order_positions.append(op)
@@ -40,6 +43,28 @@ class Order:
             for t in op.tubs:
                 self.tubs.append(t)
                 self.items.extend(t.items)
+                
+    def finish_order(self, bins):
+        for b in bins:
+            self.bins.append(b)
+            
+        self.utilization = (self.get_bins_volume()-self.get_bins_remaining_volume())/self.get_bins_volume()
+        return True
+    
+    def get_bins_volume(self):
+        bins_volume = 0
+        for b in self.bins:
+            bins_volume += b.get_volume()
+        return bins_volume
+    
+    def get_bins_remaining_volume(self):
+        bins_remaining_volume = 0
+        for b in self.bins:
+            bins_remaining_volume += b.get_remaining_volume()
+        return bins_remaining_volume
+    
+    def get_utilization(self):
+        return self.utilization
           
 class OrderPosition:
     def __init__(self, name: str, order_position_id: str, amount, tubs, position_split: bool = True, index=None, order=None):

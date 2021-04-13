@@ -36,7 +36,7 @@ packer = Packer()
 orders = []
 
 #for o in range(0, len(orderNumbers.index)):
-for o in range(0, 11):
+for o in range(0, 10):
 #for o in range(452, 454):
     
     currentOrderData = orderData.loc[orderData['LieferID']==orderNumbers.iloc[o]]
@@ -98,18 +98,19 @@ for o in range(0, 11):
             tubs.append(current_tub)
             
         #STPAE
-        current_tub = Tub("Tub_STPAE_"+str(tub_id)+"_"+str(currentOrderData.iat[pN,3]), tub_id, None)
-        tub_id += 1
-        items=[]
-        for i in range(0,int(currentOrderData.iat[pN,26])):
+        if int(currentOrderData.iat[pN,26]) > 0:
+            current_tub = Tub("Tub_STPAE_"+str(tub_id)+"_"+str(currentOrderData.iat[pN,3]), tub_id, None)
+            tub_id += 1
+            items=[]
+            for i in range(0,int(currentOrderData.iat[pN,26])):
+                
+                items.append(Item("STPAE_"+str(currentOrderData.iat[pN,4])+"_"+str(i),str(currentOrderData.iat[pN,3]),
+                             int(currentOrderData.iat[pN,28]),int(currentOrderData.iat[pN,27]),int(currentOrderData.iat[pN,29]),
+                             int(currentOrderData.iat[pN,30]), tub = current_tub, 
+                             order_position = current_order_position, order = current_order))
             
-            items.append(Item("STPAE_"+str(currentOrderData.iat[pN,4])+"_"+str(i),str(currentOrderData.iat[pN,3]),
-                         int(currentOrderData.iat[pN,28]),int(currentOrderData.iat[pN,27]),int(currentOrderData.iat[pN,29]),
-                         int(currentOrderData.iat[pN,30]), tub = current_tub, 
-                         order_position = current_order_position, order = current_order))
-        
-        current_tub.add_items(items)
-        tubs.append(current_tub)
+            current_tub.add_items(items)
+            tubs.append(current_tub)
         
         current_order_position.add_tubs(tubs)
         order_positions.append(current_order_position)        
@@ -128,8 +129,8 @@ for i in range(0,len(stammdatenBins.index)-1):
                             )) 
     
 packer.set_packing_approach(packing_algorithm="fake_skyline", packing_heuristic="bottom_left", 
-                bin_select_algorithm="best_fit", bin_select_dimension="volume", 
-                item_sorting="-", bin_sorting="-")
+                bin_select_algorithm="first_fit", bin_select_dimension="-", 
+                item_sorting="DVOL", bin_sorting="DVOL")
 
 print("Pack_Orders")
 packer.pack(orders)
@@ -144,10 +145,10 @@ if not os.path.exists(folder_path):
     os.makedirs(folder_path)
 
 print(packer)
-for b in packer.bins:
-    fig = plt.figure()
-    b.plot_bin(figure=fig)
-    fig.savefig(folder_path+"/Bin"+str(b.index))
+# for b in packer.bins:
+#     fig = plt.figure()
+#     b.plot_bin(figure=fig)
+#     fig.savefig(folder_path+"/Bin"+str(b.index))
 
 packer_properties = [["Bin Sorting", packer.bin_sorting],["Item Sorting", packer.item_sorting],
                      ["Bin Select Algorithm", packer.bin_select_algorithm],
@@ -156,13 +157,22 @@ packer_properties = [["Bin Sorting", packer.bin_sorting],["Item Sorting", packer
                      ["Packing Heuristic", packer.packing_heuristic]]
 df_properties = pd.DataFrame(packer_properties, columns = ['Component', 'Value'])
 
-perf_columns = ["Total"]
-performances = [["", packer.get_bins_volume(), packer.get_bins_remaining_volume()]]
+
+order_perf_columns = ["Total"]
+order_performances = [["", packer.get_bins_volume(), packer.get_bins_remaining_volume(), packer.get_utilization()]]
+for o in packer.orders:
+    order_perf_columns.append(str(o.order_id))
+    order_performances.append([o.allowed_PM, o.get_bins_volume(), o.get_bins_remaining_volume(), o.get_utilization()])
+order_performances = np.array(order_performances).T.tolist()
+df_order_performance = pd.DataFrame(order_performances, index = ["Order ID","Bins Volume","Bins Remaining Volume", "Utilization"], columns = order_perf_columns)
+
+bin_perf_columns = ["Total"]
+bin_performances = [["", packer.get_bins_volume(), packer.get_bins_remaining_volume(), packer.get_utilization()]]
 for b in packer.bins:
-    perf_columns.append(str(b.index))
-    performances.append([b.type, b.get_volume(), b.get_remaining_volume()])
-performances = np.array(performances).T.tolist()
-df_performance = pd.DataFrame(performances, index = ["Type","Bin Volume","Remaining Volume"], columns = perf_columns)
+    bin_perf_columns.append(str(b.index))
+    bin_performances.append([b.type, b.get_volume(), b.get_remaining_volume(), b.get_utilization()])
+bin_performances = np.array(bin_performances).T.tolist()
+df_bin_performance = pd.DataFrame(bin_performances, index = ["Type","Bin Volume","Remaining Volume", "Utilization"], columns = bin_perf_columns)
 
 df_items_bins = pd.DataFrame(packer.item_bin_assignment_matrix)
 df_bins_orders = pd.DataFrame(packer.bin_order_assignment_matrix)
@@ -173,7 +183,8 @@ df_tub_sequences = pd.DataFrame(packer.tub_sequences)
 with pd.ExcelWriter(folder_path+"/Results.xlsx") as writer:
     
     df_properties.to_excel(writer, sheet_name="Packer_Properties")
-    df_performance.to_excel(writer, sheet_name="Performance in m^3")
+    df_order_performance.to_excel(writer, sheet_name="Order_Performance in m^3")
+    df_bin_performance.to_excel(writer, sheet_name="Bin_Performance in m^3")
     df_items_bins.to_excel(writer, sheet_name="Item_Bin")
     df_bins_orders.to_excel(writer, sheet_name="Bin_Order")
     df_item_sequences.to_excel(writer, sheet_name="Item_Sequence")

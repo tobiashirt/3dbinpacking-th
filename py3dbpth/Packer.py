@@ -55,6 +55,7 @@ class Packer:
         self.tub_sequences = []
         self.item_bin_assignment_matrix = np.zeros(shape=(1,1))
         self.bin_order_assignment_matrix = np.chararray(shape=(1,1), itemsize=3)
+        self.utilization = 1.0
 
     def add_bin(self, bin):
         self.total_bins = len(self.bins) + 1
@@ -88,6 +89,10 @@ class Packer:
         for b in self.bins:
             bins_remaining_volume += b.get_remaining_volume()
         return bins_remaining_volume
+    
+    def get_utilization(self):
+        self.utilization = self.get_bins_remaining_volume()/self.get_bins_volume()
+        return (self.get_bins_volume()-self.get_bins_remaining_volume())/self.get_bins_volume()
     
     def get_empty_bins(self):
         empty_bins = list()
@@ -253,6 +258,8 @@ class Packer:
             self.item_sequences[b.index].extend(b.item_sequence)
             self.tub_sequences.append([])
             self.tub_sequences[b.index].extend(b.tub_sequence)
+        
+        order.finish_order(self.get_active_bins())
         self.reset_for_next_order()
         
     def reset_for_next_order(self):
@@ -288,3 +295,5 @@ class Packer:
                     self.bin_order_assignment_matrix[o.index, b.index] = str(b.type)
                 else:
                     self.bin_order_assignment_matrix[o.index, b.index] = "   "
+                    
+        self.utilization = self.get_utilization()

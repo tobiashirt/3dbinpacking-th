@@ -31,6 +31,7 @@ class Bin:
         self.item_sequence = []
         self.tub_sequence = []
         self.overhangRule = OverhangRule(max_overhang_ratio, min_mounted_corners)
+        self.utilization = 1.0
 
     def string(self):
         item_string = ""
@@ -65,6 +66,10 @@ class Bin:
         for i in self.items:
             items_volume += i.get_volume()
         return self.get_volume()-(items_volume/(1000*1000*1000))
+    
+    def get_utilization(self):
+        self.utilization = (self.get_volume()-self.get_remaining_volume())/self.get_volume()
+        return self.utilization
     
     def get_remaining_volume_item(self, item):
         items_volume = 0
